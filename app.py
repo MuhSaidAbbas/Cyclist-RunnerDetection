@@ -11,7 +11,7 @@ st.title("Prediksi & Penghitungan Pelari dan Pesepeda")
 # =====================
 @st.cache_resource
 def load_model():
-    return YOLO("best.pt")  # model harus ada di repo
+    return YOLO("best.pt") 
 
 model = load_model()
 
@@ -71,3 +71,4 @@ if uploaded_file:
                 )
         else:
             st.error("Output video tidak ditemukan.")
+
