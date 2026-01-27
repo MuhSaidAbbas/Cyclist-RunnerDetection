@@ -39,7 +39,7 @@ if uploaded_file:
         # =====================
         # YOLO inference + tracking
         # =====================
-        results = model.track(
+        results = model.predict(
             source=video_path,
             conf=0.5,
             persist=True,
@@ -71,4 +71,5 @@ if uploaded_file:
                 )
         else:
             st.error("Output video tidak ditemukan.")
+
 
