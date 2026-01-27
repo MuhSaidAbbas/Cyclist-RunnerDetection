@@ -1,5 +1,6 @@
 import streamlit as st
 import tempfile
+import cv2
 import os
 from ultralytics import YOLO
 
@@ -7,11 +8,11 @@ st.set_page_config(page_title="YOLO Counter App", layout="centered")
 st.title("Prediksi & Penghitungan Pelari dan Pesepeda")
 
 # =====================
-# Load model (RELATIVE PATH)
+# Load model
 # =====================
 @st.cache_resource
 def load_model():
-    return YOLO("best.pt") 
+    return YOLO("best.pt")
 
 model = load_model()
 
@@ -26,7 +27,6 @@ uploaded_file = st.file_uploader(
 if uploaded_file:
     st.success("Video berhasil di-upload")
 
-    # Simpan video ke temp file
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
         tmp.write(uploaded_file.read())
         video_path = tmp.name
@@ -34,44 +34,48 @@ if uploaded_file:
     st.video(video_path)
 
     if st.button("▶️ Predict & Counting"):
-        st.info("Processing video... (CPU mode)")
+        st.info("Processing video (frame sampling, CPU safe)...")
 
-        # =====================
-        # YOLO inference + tracking
-        # =====================
-        results = model.predict(
-            source=video_path,
-            conf=0.5,
-            imgsz=320,
-            vid_stride=3
-        )
+        cap = cv2.VideoCapture(video_path)
+        fps = int(cap.get(cv2.CAP_PROP_FPS))
+        frame_interval = fps * 2  # 1 frame tiap 2 detik
 
-        # =====================
-        # Ambil output video
-        # =====================
-        save_dir = results[0].save_dir
-        output_video = None
+        frame_idx = 0
+        pelari_counts = []
+        pesepeda_counts = []
 
-        for f in os.listdir(save_dir):
-            if f.endswith(".mp4"):
-                output_video = os.path.join(save_dir, f)
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
                 break
 
-        if output_video:
-            st.success("✅ Selesai diproses")
-            st.video(output_video)
-
-            with open(output_video, "rb") as f:
-                st.download_button(
-                    "⬇️ Download hasil video",
-                    f,
-                    file_name="hasil_counting.mp4",
-                    mime="video/mp4"
+            if frame_idx % frame_interval == 0:
+                results = model.predict(
+                    frame,
+                    imgsz=192,
+                    conf=0.5,
+                    verbose=False
                 )
-        else:
-            st.error("Output video tidak ditemukan.")
 
+                if results and results[0].boxes is not None:
+                    classes = results[0].boxes.cls.tolist()
 
+                    pelari = classes.count(0)      # asumsi class 0 = Pelari
+                    pesepeda = classes.count(1)    # asumsi class 1 = Pesepeda
 
+                    pelari_counts.append(pelari)
+                    pesepeda_counts.append(pesepeda)
 
+            frame_idx += 1
 
+        cap.release()
+
+        # =====================
+        # Final counting (stabil)
+        # =====================
+        total_pelari = max(pelari_counts) if pelari_counts else 0
+        total_pesepeda = max(pesepeda_counts) if pesepeda_counts else 0
+
+        st.success("✅ Prediksi selesai")
+        st.metric("🏃 Total Pelari", total_pelari)
+        st.metric("🚴 Total Pesepeda", total_pesepeda)
