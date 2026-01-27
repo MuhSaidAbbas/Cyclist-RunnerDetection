@@ -41,10 +41,7 @@ if uploaded_file:
         # =====================
         results = model.predict(
             source=video_path,
-            conf=0.5,
-            persist=True,
-            save=True,
-            verbose=False
+            conf=0.5
         )
 
         # =====================
@@ -71,5 +68,6 @@ if uploaded_file:
                 )
         else:
             st.error("Output video tidak ditemukan.")
+
 
 
