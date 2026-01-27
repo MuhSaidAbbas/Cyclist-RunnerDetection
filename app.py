@@ -119,11 +119,12 @@ Video ini **ditampilkan sebagai referensi visual**, bukan hasil prediksi langsun
 )
 
 # Path ke contoh output ideal
-IDEAL_OUTPUT_VIDEO = os.path.join("samples", "output_video.mp4")
+IDEAL_OUTPUT_VIDEO = os.path.join("samples", "Output Video.mp4")
 
 if os.path.exists(IDEAL_OUTPUT_VIDEO):
     st.video(IDEAL_OUTPUT_VIDEO)
 else:
     st.warning("Video contoh output ideal tidak ditemukan.")
+
 
 
