@@ -1,11 +1,10 @@
 import streamlit as st
-import tempfile
 import cv2
 import os
 from ultralytics import YOLO
 
-st.set_page_config(page_title="YOLO Counter App", layout="centered")
-st.title("Prediksi & Penghitungan Pelari dan Pesepeda")
+st.set_page_config(page_title="YOLO Sample Tracking", layout="centered")
+st.title("YOLO Tracking – Video Sampel")
 
 # =====================
 # Load model
@@ -17,65 +16,57 @@ def load_model():
 model = load_model()
 
 # =====================
-# Upload video
+# Pilih video sampel
 # =====================
-uploaded_file = st.file_uploader(
-    "Upload video (mp4 / avi)",
-    type=["mp4", "avi"]
+SAMPLE_DIR = "samples"
+videos = {
+    "Video Sampel 1": os.path.join(SAMPLE_DIR, "Video3.mp4"),
+    "Video Sampel 2": os.path.join(SAMPLE_DIR, "Video4.mp4"),
+}
+
+selected_video = st.selectbox(
+    "Pilih video untuk diprediksi",
+    list(videos.keys())
 )
 
-if uploaded_file:
-    st.success("Video berhasil di-upload")
+video_path = videos[selected_video]
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
-        tmp.write(uploaded_file.read())
-        video_path = tmp.name
+st.video(video_path)
 
-    st.video(video_path)
+# =====================
+# Predict
+# =====================
+if st.button("▶️ Mulai Tracking"):
+    st.info("Processing video (short & controlled)...")
 
-    if st.button("▶️ Predict & Counting"):
-        st.info("Processing video (frame sampling, CPU safe)...")
+    cap = cv2.VideoCapture(video_path)
+    frame_placeholder = st.empty()
 
-        cap = cv2.VideoCapture(video_path)
-        fps = int(cap.get(cv2.CAP_PROP_FPS))
-        frame_interval = fps * 2  # 1 frame tiap 2 detik
+    frame_count = 0
+    MAX_FRAMES = 120  # batasi frame (AMAN)
 
-        frame_idx = 0
-        pelari_counts = []
-        pesepeda_counts = []
+    while cap.isOpened() and frame_count < MAX_FRAMES:
+        ret, frame = cap.read()
+        if not ret:
+            break
 
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
+        # YOLO inference (FRAME)
+        results = model.predict(
+            frame,
+            imgsz=320,
+            conf=0.5,
+            verbose=False
+        )
 
-            if frame_idx % frame_interval == 0:
-                results = model.predict(
-                    frame,
-                    imgsz=192,
-                    conf=0.5,
-                    verbose=False
-                )
+        annotated = results[0].plot()
 
-                if results and results[0].boxes is not None:
-                    classes = results[0].boxes.cls.tolist()
+        frame_placeholder.image(
+            annotated,
+            channels="BGR",
+            caption=f"Frame {frame_count}"
+        )
 
-                    pelari = classes.count(0)      # asumsi class 0 = Pelari
-                    pesepeda = classes.count(1)    # asumsi class 1 = Pesepeda
+        frame_count += 1
 
-                    pelari_counts.append(pelari)
-                    pesepeda_counts.append(pesepeda)
-
-            frame_idx += 1
-
-        cap.release()
-
-        # =====================
-        # Final counting (stabil)
-        # =====================
-        total_pelari = max(pelari_counts) if pelari_counts else 0
-        total_pesepeda = max(pesepeda_counts) if pesepeda_counts else 0
-
-        st.success("✅ Prediksi selesai")
-        st.metric("🏃 Total Pelari", total_pelari)
-        st.metric("🚴 Total Pesepeda", total_pesepeda)
+    cap.release()
+    st.success("✅ Tracking selesai (preview frame)")
