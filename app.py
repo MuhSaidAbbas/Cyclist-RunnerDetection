@@ -43,7 +43,7 @@ if uploaded_file:
             source=video_path,
             conf=0.5,
             imgsz=320,
-            vid_stride=2
+            vid_stride=3
         )
 
         # =====================
@@ -70,6 +70,7 @@ if uploaded_file:
                 )
         else:
             st.error("Output video tidak ditemukan.")
+
 
 
 
