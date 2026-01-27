@@ -5,3 +5,4 @@ torchvision==0.15.2
 numpy<2.0
 Pillow
 streamlit
+lap==0.4.0
