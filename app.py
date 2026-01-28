@@ -1,5 +1,4 @@
 import streamlit as st
-import cv2
 import os
 from ultralytics import YOLO
 
@@ -125,6 +124,7 @@ if os.path.exists(IDEAL_OUTPUT_VIDEO):
     st.video(IDEAL_OUTPUT_VIDEO)
 else:
     st.warning("Video contoh output ideal tidak ditemukan.")
+
 
 
 
